@@ -22,14 +22,14 @@ Done means every applicable step passes and the docs below match the new behavio
 
 ## Conventions the code relies on
 
-- **Metric names**: `group.name_unit`. `wire.Unit` maps the suffix to a UCUM unit used by both `metricsctl` formatting and OTLP export; a new suffix needs a case there and in `cmd/metricsctl/format.go`.
+- **Metric names**: `group.name_unit`. `wire.Unit` maps the suffix to a UCUM unit used by both `metricsctl` formatting and OTLP export; a new suffix needs a case there and in `metricsctl/format.go`.
 - **Labels**: built with `labels()` (sanitizes `,` and `=`), stable across reboots (device addresses, not `hwmonN`). Metric plus labels identify a series.
 - **Counters** go through `deltas` in `internal/collector/collector.go`; rate collectors return nothing on their first call.
-- **Collector registry**: a collector is registered in `config.CollectorNames`, in `buildCollectors` (`cmd/metricsd/main.go`) in the host branch, the container branch, or both, and documented in `docs/metrics.md`.
+- **Collector registry**: a collector is registered in `config.CollectorNames`, in `buildCollectors` (`main.go`) in the host branch, the container branch, or both, and documented in `docs/metrics.md`.
 - **Environments**: containers read cgroup v2 files through `collector.Cgroup`, where every file is optional (rootless runtimes delegate only some controllers); missing data is omitted, never zero. Machine-wide figures (load, sensors) are host-only.
 - **`Checker`** is for sources absent by environment (cgroup controllers, PSI) and disables a collector once at startup. Hardware collectors stay always-on so hot-plugged batteries and late-loading sensor drivers are picked up.
 - **Exporters** implement `export.Exporter` and receive `store.Cycle`s in metricsd's own format; the store's export cursor is the delivery buffer.
-- **`internal/wire` stays standard-library only** so `metricsctl` never links SQLite, gopsutil, or OpenTelemetry (`go list -deps ./cmd/metricsctl`).
+- **`internal/wire` stays standard-library only** so `metricsctl` never links SQLite, gopsutil, or OpenTelemetry (`go list -deps ./metricsctl`).
 - **Dependencies**: gopsutil v4 (host metrics), OpenTelemetry SDK + OTLP HTTP/gRPC exporters (with grpc), `modernc.org/sqlite`, `BurntSushi/toml`, `golang.org/x/sys`. cgroup files are read directly because library readers zero-fill missing controllers and log on every read, which breaks rootless correctness. Keep builds CGO-free.
 - **Config**: every key has a default in `config.Default()`, is checked in `Validate()`, and is documented in `docs/configuration.md` and `deploy/config.example.toml`. Unknown keys are rejected, so renaming a key is a breaking change.
 - **Sandbox**: the unit makes the filesystem read-only except `StateDirectory` and `RuntimeDirectory`, and allows `AF_UNIX`, `AF_INET`, `AF_INET6`. New writable paths or address families need a unit change.

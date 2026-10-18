@@ -109,22 +109,65 @@ metricsd runs as a **systemd user service**. It does not need root access, it ru
 
 ### Install
 
-Requirements: Linux, Go 1.27 or later, `make`, and systemd.
+Requirements: Linux and systemd. Options A and C also need Go 1.27 or later. Option C also needs `make`.
+
+**Option A: go install (recommended).**
+
+```bash
+go install github.com/brian-nunez/metricsd@latest
+go install github.com/brian-nunez/metricsd/metricsctl@latest
+```
+
+To run metricsd as a user service, install the unit:
+
+```bash
+BIN=$(go env GOBIN); BIN=${BIN:-$(go env GOPATH)/bin}
+mkdir -p ~/.config/systemd/user
+curl -fsSL https://raw.githubusercontent.com/brian-nunez/metricsd/main/deploy/metricsd.service \
+  | sed "s|@BINDIR@|$BIN|" > ~/.config/systemd/user/metricsd.service
+systemctl --user daemon-reload
+systemctl --user enable --now metricsd
+```
+
+**Option B: prebuilt release with curl.** This option does not need Go.
+
+```bash
+ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/; s/armv7l/armv7/')
+curl -fsSL "https://github.com/brian-nunez/metricsd/releases/latest/download/metricsd_linux_$ARCH.tar.gz" | tar -xz
+install -Dm755 -t ~/.local/bin "metricsd_linux_$ARCH/metricsd" "metricsd_linux_$ARCH/metricsctl"
+```
+
+To run metricsd as a user service, install the unit from the archive:
+
+```bash
+mkdir -p ~/.config/systemd/user
+sed "s|@BINDIR@|$HOME/.local/bin|" "metricsd_linux_$ARCH/metricsd.service" > ~/.config/systemd/user/metricsd.service
+systemctl --user daemon-reload
+systemctl --user enable --now metricsd
+```
+
+To check the download against `checksums.txt`, see [installation.md](installation.md#install-a-prebuilt-release-with-curl).
+
+**Option C: build from source.**
 
 ```bash
 git clone git@github.com:brian-nunez/metricsd.git
 cd metricsd
 make install                                   # Installs binaries to ~/.local/bin and the unit to ~/.config/systemd/user.
+systemctl --user enable --now metricsd
+```
 
+**For all options, do these steps after the install:**
+
+```bash
 mkdir -p ~/.config/metricsd
 $EDITOR ~/.config/metricsd/config.toml         # Paste the production config.
 chmod 600 ~/.config/metricsd/config.toml
-
-systemctl --user enable --now metricsd
+systemctl --user restart metricsd              # Loads the config.
 loginctl enable-linger "$USER"                 # Keeps metricsd running without a login session, and starts it at boot.
 ```
 
-Make sure that `~/.local/bin` is on your `PATH`.
+Make sure that the binary directory is on your `PATH`. For option A, it is `$(go env GOPATH)/bin`. For options B and C, it is `~/.local/bin`.
 
 **Dedicated account (optional).** To run metricsd under its own user account instead of your account, do these steps:
 
@@ -152,8 +195,8 @@ journalctl --user -u metricsd -n 20            # Shows "otlp export enabled" and
 | Follow the logs | `journalctl --user -u metricsd -f` |
 | Apply a config change | `systemctl --user restart metricsd` |
 | Stop or start | `systemctl --user stop metricsd` or `systemctl --user start metricsd` |
-| Upgrade | `git pull && make install`. This command restarts the running service. |
-| Uninstall | `make uninstall`. This command keeps the data and the config. See [uninstall.md](uninstall.md). |
+| Upgrade | Option A: run the two `go install` commands again. Option B: run the curl and `install` commands again. For options A and B, then run `systemctl --user restart metricsd`. Option C: run `git pull && make install`. This command restarts the running service. |
+| Uninstall | Option C: `make uninstall`. Options A and B: follow [uninstall.md](uninstall.md#without-the-repository). Both methods keep the data and the config. |
 
 Files:
 

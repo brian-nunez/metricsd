@@ -3,13 +3,20 @@ BINDIR  ?= $(PREFIX)/bin
 UNITDIR ?= $(HOME)/.config/systemd/user
 GO      ?= go
 
-GOFLAGS := -trimpath
-LDFLAGS := -s -w
+# Release builds pass VERSION (e.g. v1.2.3); other builds report the
+# module or VCS version from Go's build info.
+VERSION ?=
 
-.PHONY: build vet install uninstall clean
+GOFLAGS := -trimpath
+LDFLAGS := -s -w $(if $(VERSION),-X github.com/brian-nunez/metricsd/internal/version.version=$(VERSION))
+
+# Release archive targets, named as they appear in asset file names.
+DIST_ARCHES := amd64 arm64 armv7
+
+.PHONY: build vet install uninstall dist clean
 
 build:
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o bin/ ./cmd/...
+	CGO_ENABLED=0 $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o bin/ . ./metricsctl
 
 vet:
 	$(GO) vet ./...
@@ -34,5 +41,23 @@ uninstall:
 	systemctl --user daemon-reload
 	@echo "Data left in place: $${XDG_STATE_HOME:-$(HOME)/.local/state}/metricsd"
 
+# Asset names carry no version so the latest release is always reachable at
+# .../releases/latest/download/metricsd_linux_<arch>.tar.gz.
+dist:
+	@test -n "$(VERSION)" || { echo "usage: make dist VERSION=vX.Y.Z" >&2; exit 1; }
+	rm -rf dist
+	@set -e; for arch in $(DIST_ARCHES); do \
+		name=metricsd_linux_$$arch; \
+		goarch=$$arch; goarm=; \
+		if [ $$arch = armv7 ]; then goarch=arm; goarm=7; fi; \
+		echo "build $$name"; \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$$goarch GOARM=$$goarm \
+			$(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o dist/$$name/ . ./metricsctl; \
+		cp LICENSE README.md deploy/metricsd.service deploy/config.example.toml dist/$$name/; \
+		tar -C dist -czf dist/$$name.tar.gz $$name; \
+		rm -rf dist/$$name; \
+	done
+	cd dist && sha256sum *.tar.gz > checksums.txt
+
 clean:
-	rm -rf bin
+	rm -rf bin dist

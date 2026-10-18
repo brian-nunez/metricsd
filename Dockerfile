@@ -10,11 +10,16 @@
 # Running this image on its own measures only this image's container.
 
 FROM golang:1.27-alpine AS build
+# The build context excludes .git, so pass the version explicitly:
+#   docker build --build-arg VERSION=v0.1.0 -t metricsd:v0.1.0 .
+ARG VERSION=dev
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags '-s -w' -o /out/ ./cmd/... \
+RUN CGO_ENABLED=0 go build -trimpath \
+      -ldflags "-s -w -X github.com/brian-nunez/metricsd/internal/version.version=${VERSION}" \
+      -o /out/ . ./metricsctl \
  && mkdir -p /rootfs/tmp && chmod 1777 /rootfs/tmp
 
 FROM scratch
