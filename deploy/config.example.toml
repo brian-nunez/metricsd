@@ -1,0 +1,29 @@
+# metricsd configuration. Copy to ~/.config/metricsd/config.toml.
+# Every key is optional; the values below are the defaults.
+
+# How often to sample. Minimum 1s.
+interval = "5s"
+
+# How long to keep samples. Accepts Go durations ("36h") or whole days ("7d").
+retention = "7d"
+
+# Defaults follow XDG: $XDG_STATE_HOME/metricsd/metrics.db and
+# $XDG_RUNTIME_DIR/metricsd/metricsd.sock. "~/" is expanded.
+# db_path = "~/.local/state/metricsd/metrics.db"
+# socket_path = "/run/user/1000/metricsd/metricsd.sock"
+
+[collectors]
+cpu = true
+mem = true
+load = true
+disk = true
+diskio = true
+net = true
+temp = true
+
+# Glob patterns. Setting a list replaces the defaults entirely.
+[net]
+exclude_interfaces = ["lo", "veth*", "br-*", "docker*"]
+
+[diskio]
+exclude_devices = ["loop*", "ram*", "dm-*"]
