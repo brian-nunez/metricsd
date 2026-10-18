@@ -144,7 +144,8 @@ XDG environment variables (`XDG_CONFIG_HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR
 cd metricsd
 git pull
 make install
-systemctl --user restart metricsd
 ```
+
+`make install` restarts the service when it is already running, so the new binary takes over immediately. On a first install it only prints how to start it.
 
 The database schema is created with `IF NOT EXISTS`, so existing data carries over.
