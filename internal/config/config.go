@@ -75,7 +75,7 @@ func Default() Config {
 	return Config{
 		Environment: EnvironmentAuto,
 		Interval:    Duration(5 * time.Second),
-		Retention:   Duration(7 * 24 * time.Hour),
+		Retention:   Duration(24 * time.Hour),
 		DBPath:      DefaultDBPath(environment.Detect().IsContainer()),
 		SocketPath:  DefaultSocketPath(),
 		Collectors:  collectors,

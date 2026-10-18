@@ -11,7 +11,7 @@ Keeps three months of history at one-minute resolution: enough to see trends, co
 
 ## Footprint
 
-About 169 series → **~8 MiB/day, ~730 MiB at full retention**. That's roughly the same size as the default 5s × 7d config, but covering 13× the time.
+About 169 series → **~8 MiB/day, ~730 MiB at full retention**. That's about 7× the disk use of the default 5s × 1d config (~98 MiB), but covering 90× the time.
 
 ## Pair with lingering
 

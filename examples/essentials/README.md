@@ -25,7 +25,7 @@ The `true` lines could be left out, since collectors default to on. They're list
 
 ## Footprint
 
-About 75 series on a 12-thread machine → **~43 MiB/day, ~300 MiB at full retention**. Most of what remains is per-core CPU usage and frequency; on a 4-core machine it drops to about 50 series. Inside a container it is about 30 series.
+About 75 series on a 12-thread machine → **~43 MiB at full retention** (1 day). Most of what remains is per-core CPU usage and frequency; on a 4-core machine it drops to about 50 series. Inside a container it is about 30 series.
 
 ## When to use it
 

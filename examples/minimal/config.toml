@@ -1,7 +1,7 @@
 # The settings people change most. Everything else keeps its default.
 
 interval  = "5s"
-retention = "7d"
+retention = "1d"
 
 [net]
 exclude_interfaces = ["lo", "veth*", "br-*", "docker*"]

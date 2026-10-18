@@ -33,7 +33,7 @@ metricsd -config /path/to/config.toml
 | ------------- | -------- | ------- | ----------- |
 | `environment` | string   | `"auto"` | What metricsd is measuring. See [Environment](#environment). |
 | `interval`    | duration | `"5s"`  | Time between samples. Minimum `1s`. |
-| `retention`   | duration | `"7d"`  | How long samples are kept. Must be at least `interval`. Old samples are pruned at startup and then hourly. Also bounds how far back [export](#exportotlp) can catch up after an outage. |
+| `retention`   | duration | `"1d"`  | How long samples are kept. Must be at least `interval`. Old samples are pruned at startup and then hourly. Also bounds how far back [export](#exportotlp) can catch up after an outage. |
 | `db_path`     | path     | [depends on environment](#default-paths) | SQLite database file. Parent directory is created if needed (mode `0700`). |
 | `socket_path` | path     | [see below](#default-paths) | Unix socket for the API. At most 107 bytes. |
 
@@ -256,4 +256,4 @@ Disk usage grows with series × samples kept. At about 35 bytes per point:
 MiB per day ≈ series × (86400 / interval_seconds) × 35 / 1048576
 ```
 
-A typical desktop reports about **169 series**; a container about **73**. At the default 5s interval that is roughly 98 MiB/day for a desktop and 42 MiB/day for a container. Use `metricsctl list` to see your own count, and see [architecture.md](architecture.md#disk-usage) for a sizing table.
+A typical desktop reports about **169 series**; a container about **73**. With the defaults (5s interval, 1 day retention) that is roughly 98 MiB for a desktop and 42 MiB for a container. Use `metricsctl list` to see your own count, and see [architecture.md](architecture.md#disk-usage) for a sizing table.
