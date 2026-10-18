@@ -15,18 +15,22 @@ A lightweight Linux metrics agent. It gathers metrics from **the machine or cont
 
 ### On a machine (PC, server, VM)
 
-Requires Linux, Go 1.27+, `make`, and a systemd user session.
+Requires Linux and a systemd user session. Install with Go 1.27+:
 
 ```bash
-git clone git@github.com:brian-nunez/metricsd.git
-cd metricsd
-make install
-systemctl --user enable --now metricsd
-metricsctl info
-metricsctl now
+go install github.com/brian-nunez/metricsd@latest
+go install github.com/brian-nunez/metricsd/metricsctl@latest
 ```
 
-Make sure `~/.local/bin` is on your `PATH`. See [docs/installation.md](docs/installation.md).
+Or download a prebuilt release without Go:
+
+```bash
+ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/; s/armv7l/armv7/')
+curl -fsSL "https://github.com/brian-nunez/metricsd/releases/latest/download/metricsd_linux_$ARCH.tar.gz" | tar -xz
+install -Dm755 -t ~/.local/bin "metricsd_linux_$ARCH/metricsd" "metricsd_linux_$ARCH/metricsctl"
+```
+
+Then check it with `metricsctl info` and `metricsctl now`. Make sure `$(go env GOPATH)/bin` or `~/.local/bin` is on your `PATH`. [docs/installation.md](docs/installation.md) shows how to run it as a systemd service, verify checksums, build from source, and upgrade.
 
 ### In a container
 
@@ -127,8 +131,8 @@ Full reference: [docs/metrics.md](docs/metrics.md).
 ## Project layout
 
 ```
-cmd/metricsd/          daemon entry point and collector registry
-cmd/metricsctl/        CLI client
+main.go                daemon entry point and collector registry
+metricsctl/            CLI client
 internal/collector/    collectors: host (gopsutil, /proc, /sys) and container (cgroup v2)
 internal/environment/  physical / VM / Docker / Podman / Kubernetes detection
 internal/identity/     who is being measured: IDs, OS, container and pod details
@@ -143,6 +147,7 @@ deploy/                systemd unit and reference config
 examples/              example configs with explanations
 docs/                  user documentation
 Dockerfile             minimal image for copying into application images
+.github/workflows/     release workflow that publishes prebuilt binaries
 ```
 
 ## License

@@ -5,13 +5,70 @@
 | Requirement            | Why                                                         |
 | ---------------------- | ----------------------------------------------------------- |
 | Linux                  | Metrics come from `/proc` and `/sys`                        |
-| Go 1.27 or newer       | Build from source                                           |
-| `make`, `install`, `sed` | Used by `make install`                                    |
+| Go 1.27 or newer       | Only for `go install` or building from source               |
+| `make`, `install`, `sed` | Used by `make install` and the install snippets           |
 | systemd (user session) | Runs the daemon as a service (optional, see below)          |
 
 No root access is needed. Everything installs into your home directory and runs as your user.
 
-## Install with make (recommended)
+## Install with go install (recommended)
+
+Requires Go 1.27 or newer. Builds both binaries from the module, without a checkout:
+
+```bash
+go install github.com/brian-nunez/metricsd@latest
+go install github.com/brian-nunez/metricsd/metricsctl@latest
+```
+
+The binaries go to `$(go env GOPATH)/bin` (or `$GOBIN` when set). `@latest` resolves to the newest release tag, and `metricsd -version` reports it.
+
+Run it as a user service. `go install` installs only binaries, so the unit template comes from GitHub:
+
+```bash
+BIN=$(go env GOBIN); BIN=${BIN:-$(go env GOPATH)/bin}
+mkdir -p ~/.config/systemd/user
+curl -fsSL https://raw.githubusercontent.com/brian-nunez/metricsd/main/deploy/metricsd.service \
+  | sed "s|@BINDIR@|$BIN|" > ~/.config/systemd/user/metricsd.service
+systemctl --user daemon-reload
+systemctl --user enable --now metricsd
+```
+
+**Upgrade:** run both `go install` commands again, then `systemctl --user restart metricsd`.
+
+## Install a prebuilt release with curl
+
+No Go needed. Every release on [GitHub](https://github.com/brian-nunez/metricsd/releases) has static Linux binaries for `amd64`, `arm64`, and `armv7`:
+
+```bash
+ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/; s/armv7l/armv7/')
+curl -fsSL "https://github.com/brian-nunez/metricsd/releases/latest/download/metricsd_linux_$ARCH.tar.gz" | tar -xz
+install -Dm755 -t ~/.local/bin "metricsd_linux_$ARCH/metricsd" "metricsd_linux_$ARCH/metricsctl"
+```
+
+Each archive holds `metricsd`, `metricsctl`, the systemd unit template, the reference config, `LICENSE`, and `README.md`. To install a specific version, replace `latest/download` with `download/v0.1.0`.
+
+To check the download against the published checksums, download the archive to a file first:
+
+```bash
+BASE=https://github.com/brian-nunez/metricsd/releases/latest/download
+curl -fsSLO "$BASE/metricsd_linux_$ARCH.tar.gz"
+curl -fsSLO "$BASE/checksums.txt"
+sha256sum --ignore-missing -c checksums.txt     # must print OK
+tar -xzf "metricsd_linux_$ARCH.tar.gz"
+```
+
+Run it as a user service with the unit template from the archive:
+
+```bash
+mkdir -p ~/.config/systemd/user
+sed "s|@BINDIR@|$HOME/.local/bin|" "metricsd_linux_$ARCH/metricsd.service" > ~/.config/systemd/user/metricsd.service
+systemctl --user daemon-reload
+systemctl --user enable --now metricsd
+```
+
+**Upgrade:** run the curl and `install` commands again, then `systemctl --user restart metricsd`.
+
+## Install from source with make
 
 ```bash
 git clone git@github.com:brian-nunez/metricsd.git
@@ -67,28 +124,13 @@ User services stop when your last session ends. On a server or any machine where
 loginctl enable-linger "$USER"
 ```
 
-## Install with go install
-
-`go install` builds the binaries but does not install the systemd unit:
-
-```bash
-go install github.com/brian-nunez/metricsd/cmd/...@latest
-```
-
-Binaries land in `$(go env GOPATH)/bin`. To run it as a service, install the unit from a checkout pointing at that directory:
-
-```bash
-make install BINDIR="$(go env GOPATH)/bin"
-```
-
-Or create the unit by hand: copy `deploy/metricsd.service` to `~/.config/systemd/user/`, replace `@BINDIR@` with the binary's directory, and run `systemctl --user daemon-reload`.
-
 ## Docker image
 
 To measure a container, metricsd runs inside it (see [containers.md](containers.md)). Build the image from the repository:
 
 ```bash
 docker build -t metricsd .      # or: podman build -t metricsd .
+docker build --build-arg VERSION=v0.1.0 -t metricsd:v0.1.0 .   # stamp a version; otherwise metricsd -version prints "dev"
 ```
 
 | Property | Value |

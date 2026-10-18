@@ -25,6 +25,7 @@
 - [systemd](systemd.md) – service management, sandboxing, drop-ins, logs
 - [Troubleshooting](troubleshooting.md) – common errors and fixes
 - [Uninstall](uninstall.md) – remove everything cleanly
+- [Releasing](releasing.md) – tag a version and publish prebuilt binaries
 
 ## Internals
 

@@ -73,8 +73,8 @@ Container metrics come from a small cgroup v2 reader (`internal/collector/cgroup
 
 | Package | Responsibility |
 | ------- | -------------- |
-| `cmd/metricsd` | Wiring: config, signals, main loop, collector selection, export startup |
-| `cmd/metricsctl` | CLI: commands, formatting, Unix socket HTTP client |
+| `main` (repository root) | Wiring: config, signals, main loop, collector selection, export startup |
+| `metricsctl` | CLI: commands, formatting, Unix socket HTTP client |
 | `internal/environment` | Detects physical, VM, Docker, Podman, Kubernetes, or other container; standard library only |
 | `internal/identity` | Builds the identity: machine ID or container ID, Kubernetes pod details, OS, tags |
 | `internal/collector` | One collector per metric group and environment; cgroup v2 reader; `deltas` rate helper |
@@ -83,7 +83,7 @@ Container metrics come from a small cgroup v2 reader (`internal/collector/cgroup
 | `internal/config` | Defaults, TOML loading, validation, environment-aware default paths |
 | `internal/export` | `Exporter` interface and the runner that delivers buffered cycles |
 | `internal/export/otlp` | OTLP/HTTP and OTLP/gRPC exporter; maps samples to OpenTelemetry gauges |
-| `internal/version` | Version string from Go build info |
+| `internal/version` | Version string: link-time version for release archives, otherwise Go build info |
 | `internal/wire` | JSON types and `Unit()`, the single source of metric units; no dependencies, so the CLI never links SQLite, gopsutil, or OpenTelemetry |
 
 ## Export
