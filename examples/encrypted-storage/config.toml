@@ -1,0 +1,7 @@
+# Full-disk encryption (LUKS) or LVM: measure the logical devices
+# instead of the raw disks underneath.
+
+[diskio]
+# Default excludes dm-* and records the physical disk. Flip it: record
+# dm-* (the decrypted / logical volumes) and skip the physical disks.
+exclude_devices = ["loop*", "ram*", "zram*", "nvme*", "sd*", "vd*"]

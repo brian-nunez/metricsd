@@ -1,0 +1,7 @@
+# Docker hosts: total container traffic without per-container noise.
+
+[net]
+# docker0 is NOT excluded: it carries the combined traffic of containers on
+# Docker's default bridge network. veth* (one per container) and br-*
+# (one per compose network) churn as containers come and go.
+exclude_interfaces = ["lo", "veth*", "br-*"]

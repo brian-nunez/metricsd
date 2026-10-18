@@ -1,0 +1,6 @@
+# One-second sampling for benchmarking and catching short spikes.
+
+interval  = "1s"
+
+# 1s data grows fast (~160 MiB/day); keep only what you'll look at.
+retention = "1d"

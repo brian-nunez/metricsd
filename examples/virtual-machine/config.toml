@@ -1,0 +1,12 @@
+# Guests: VMs, VPS, and cloud instances.
+
+interval  = "10s"
+retention = "14d"
+
+[collectors]
+# Hypervisors don't pass hardware sensors through to guests.
+temp = false
+
+[diskio]
+# Cloud images often enable zram swap; it is memory, not disk.
+exclude_devices = ["loop*", "ram*", "dm-*", "zram*", "sr*"]

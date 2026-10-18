@@ -1,0 +1,21 @@
+# Hypervisor hosts running libvirt/KVM, Proxmox, or similar.
+
+[net]
+# virbr0 (libvirt's NAT bridge) is kept as the total for NATed guests.
+# Per-VM taps are dropped; they are recreated every time a VM starts.
+exclude_interfaces = [
+  "lo",
+  "vnet*",     # libvirt per-VM tap devices
+  "tap*",      # Proxmox / QEMU taps
+  "fwbr*",     # Proxmox firewall bridges
+  "fwpr*",     # Proxmox firewall bridge ports
+  "fwln*",     # Proxmox firewall links
+  "macvtap*",  # macvtap direct attachments
+  "veth*",     # LXC containers
+  "docker*",
+  "br-*",
+]
+
+[diskio]
+# Guest disks on LVM-thin or ZFS zvols appear as dm-* and zd* devices.
+exclude_devices = ["loop*", "ram*", "dm-*", "zd*", "nbd*"]

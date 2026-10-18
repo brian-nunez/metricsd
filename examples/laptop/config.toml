@@ -1,0 +1,10 @@
+# Battery-friendly settings for laptops.
+
+# Fewer wakeups: one sample every 30 seconds instead of every 5.
+interval  = "30s"
+retention = "3d"
+
+[net]
+# Wired adapters (en*, eth*) are usually unplugged on a laptop and would
+# record a flat zero series. Keep Wi-Fi and VPN interfaces.
+exclude_interfaces = ["lo", "veth*", "br-*", "docker*", "en*", "eth*"]

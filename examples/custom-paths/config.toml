@@ -1,0 +1,9 @@
+# Store the database on a separate data disk.
+#
+# Under systemd this also needs a drop-in granting write access; see
+# README.md in this directory. Paths must be absolute; "~/" is expanded.
+
+db_path = "/mnt/data/metricsd/metrics.db"
+
+# Longer history is the usual reason to move the database to a bigger disk.
+retention = "30d"

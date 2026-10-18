@@ -1,0 +1,5 @@
+# Months of history for trends and capacity planning.
+
+# One sample a minute is plenty for trends spanning weeks.
+interval  = "60s"
+retention = "90d"

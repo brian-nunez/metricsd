@@ -1,0 +1,10 @@
+# Only the core health signals: CPU, memory, load, and disk space.
+
+[collectors]
+cpu    = true
+mem    = true
+load   = true
+disk   = true
+diskio = false
+net    = false
+temp   = false

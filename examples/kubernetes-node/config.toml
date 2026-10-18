@@ -1,0 +1,28 @@
+# Kubernetes / k3s worker or control-plane node.
+
+# Nodes run unattended; a 15s interval matches common scrape intervals.
+interval  = "15s"
+retention = "14d"
+
+[net]
+# Pod networking creates one interface per pod plus CNI tunnels and bridges.
+# Only the node's physical uplinks and VPN remain.
+exclude_interfaces = [
+  "lo",
+  "veth*",        # pod interfaces (Flannel, bridge CNI)
+  "cali*",        # Calico pod interfaces
+  "tunl*",        # Calico IP-in-IP tunnel
+  "vxlan*",       # Calico / generic VXLAN
+  "flannel*",     # Flannel VXLAN device
+  "cni*",         # CNI bridges (cni0)
+  "lxc*",         # Cilium pod interfaces
+  "cilium_*",     # Cilium host/net/vxlan devices
+  "kube-*",       # kube-ipvs0, kube-bridge
+  "nodelocaldns", # NodeLocal DNSCache dummy interface
+  "docker*",
+  "br-*",
+]
+
+[diskio]
+# containerd snapshots and Longhorn volumes show up as loop and dm devices.
+exclude_devices = ["loop*", "ram*", "dm-*", "nbd*", "zram*"]
