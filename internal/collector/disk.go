@@ -5,21 +5,25 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/sys/unix"
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
 // /proc/mounts escapes whitespace and backslashes in paths as octal.
 var mountUnescaper = strings.NewReplacer(`\040`, " ", `\011`, "\t", `\012`, "\n", `\134`, `\`)
 
-// Disk reports capacity for each block-device-backed filesystem. Devices
-// mounted more than once (e.g. btrfs subvolumes) are reported only for
-// their first mount point.
-type Disk struct{}
+// Disk reports capacity and inode usage for each block-device-backed
+// filesystem. Devices mounted more than once (e.g. btrfs subvolumes) are
+// reported only for their first mount point.
+type Disk struct {
+	// Container also reports the container's root filesystem, which is an
+	// overlay (or fuse-overlayfs when rootless) rather than a block device.
+	Container bool
+}
 
 func (Disk) Name() string { return "disk" }
 
-func (Disk) Collect(time.Time) ([]Sample, error) {
-	data, err := os.ReadFile("/proc/mounts")
+func (d Disk) Collect(time.Time) ([]Sample, error) {
+	data, err := os.ReadFile("/proc/self/mounts")
 	if err != nil {
 		return nil, err
 	}
@@ -32,33 +36,39 @@ func (Disk) Collect(time.Time) ([]Sample, error) {
 			continue
 		}
 		dev, mount := f[0], mountUnescaper.Replace(f[1])
-		if !strings.HasPrefix(dev, "/dev/") || seen[dev] {
+
+		root := d.Container && mount == "/"
+		if !root && (!strings.HasPrefix(dev, "/dev/") || seen[dev]) {
 			continue
 		}
-		seen[dev] = true
-
-		var st unix.Statfs_t
-		if err := unix.Statfs(mount, &st); err != nil {
+		// Containers bind-mount single files such as /etc/hosts from the
+		// host's disk; those describe the host, not the container.
+		if fi, err := os.Stat(mount); err != nil || !fi.IsDir() {
 			continue
 		}
-
-		bs := uint64(st.Frsize)
-		if bs == 0 {
-			bs = uint64(st.Bsize)
+		if !root {
+			seen[dev] = true
 		}
-		total := st.Blocks * bs
-		used := (st.Blocks - st.Bfree) * bs
-		avail := st.Bavail * bs
 
-		labels := "mount=" + mount
+		u, err := disk.Usage(mount)
+		if err != nil {
+			continue
+		}
+		l := labels("mount", mount)
 		out = append(out,
-			Sample{Metric: "disk.total_bytes", Labels: labels, Value: float64(total)},
-			Sample{Metric: "disk.used_bytes", Labels: labels, Value: float64(used)},
-			Sample{Metric: "disk.free_bytes", Labels: labels, Value: float64(avail)},
+			gauge("disk.total_bytes", l, float64(u.Total)),
+			gauge("disk.used_bytes", l, float64(u.Used)),
+			gauge("disk.free_bytes", l, float64(u.Free)),
+			gauge("disk.used_pct", l, u.UsedPercent),
 		)
-		// Matches df: reserved blocks count as neither used nor available.
-		if used+avail > 0 {
-			out = append(out, Sample{Metric: "disk.used_pct", Labels: labels, Value: float64(used) / float64(used+avail) * 100})
+		// btrfs and some network filesystems report no inode limits.
+		if u.InodesTotal > 0 {
+			out = append(out,
+				gauge("disk.inodes_total", l, float64(u.InodesTotal)),
+				gauge("disk.inodes_used", l, float64(u.InodesUsed)),
+				gauge("disk.inodes_free", l, float64(u.InodesFree)),
+				gauge("disk.inodes_used_pct", l, u.InodesUsedPercent),
+			)
 		}
 	}
 	return out, nil

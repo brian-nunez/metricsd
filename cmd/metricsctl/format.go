@@ -3,26 +3,42 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/brian-nunez/metricsd/internal/wire"
 )
 
-// formatValue renders v using the unit implied by the metric's suffix.
+// formatValue renders v in the metric's unit.
 func formatValue(metric string, v float64) string {
-	switch {
-	case strings.HasSuffix(metric, "_bytes_per_sec"):
+	switch wire.Unit(metric) {
+	case "By/s":
 		return formatBytes(v) + "/s"
-	case strings.HasSuffix(metric, "_bytes"):
+	case "By":
 		return formatBytes(v)
-	case strings.HasSuffix(metric, "_pct"):
+	case "%":
 		return fmt.Sprintf("%.1f%%", v)
-	case strings.HasSuffix(metric, ".celsius"):
+	case "1/s":
+		return fmt.Sprintf("%.1f/s", v)
+	case "MHz":
+		return fmt.Sprintf("%.0f MHz", v)
+	case "ms":
+		return fmt.Sprintf("%.2f ms", v)
+	case "W":
+		return fmt.Sprintf("%.1f W", v)
+	case "Cel":
 		return fmt.Sprintf("%.1f°C", v)
-	case strings.HasSuffix(metric, ".seconds"):
+	case "s":
 		return formatUptime(time.Duration(v * float64(time.Second)))
+	case "1/min":
+		return fmt.Sprintf("%.0f RPM", v)
 	default:
+		if v == math.Trunc(v) && math.Abs(v) < 1e15 {
+			return strconv.FormatFloat(v, 'f', 0, 64)
+		}
 		return strconv.FormatFloat(v, 'f', 2, 64)
 	}
 }
@@ -42,6 +58,9 @@ func formatBytes(v float64) string {
 }
 
 func formatUptime(d time.Duration) string {
+	if d < time.Minute {
+		return d.Round(time.Second).String()
+	}
 	d = d.Round(time.Minute)
 	days := d / (24 * time.Hour)
 	d -= days * 24 * time.Hour
@@ -50,7 +69,10 @@ func formatUptime(d time.Duration) string {
 	if days > 0 {
 		return fmt.Sprintf("%dd %dh %dm", days, hours, d/time.Minute)
 	}
-	return fmt.Sprintf("%dh %dm", hours, d/time.Minute)
+	if hours > 0 {
+		return fmt.Sprintf("%dh %dm", hours, d/time.Minute)
+	}
+	return fmt.Sprintf("%dm", d/time.Minute)
 }
 
 func printJSONValue(v any) error {

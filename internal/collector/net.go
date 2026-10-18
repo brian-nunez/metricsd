@@ -1,57 +1,43 @@
 package collector
 
 import (
-	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	psnet "github.com/shirou/gopsutil/v4/net"
 )
 
-// Net reports receive/transmit throughput per network interface.
-// Interfaces matching any Exclude glob are skipped.
+// Net reports throughput, packet, error, and drop rates per network
+// interface. /proc/net/dev is scoped to the network namespace, so inside a
+// container it lists the container's own interfaces. Interfaces matching
+// any Exclude glob are skipped.
 type Net struct {
 	Exclude []string
 
-	rate counterRate
+	counters deltas
 }
 
 func (n *Net) Name() string { return "net" }
 
 func (n *Net) Collect(now time.Time) ([]Sample, error) {
-	data, err := os.ReadFile("/proc/net/dev")
+	stats, err := psnet.IOCounters(true)
 	if err != nil {
 		return nil, err
 	}
 
-	cur := make(map[string]uint64)
-	for _, line := range strings.Split(string(data), "\n") {
-		iface, rest, ok := strings.Cut(line, ":")
-		if !ok {
+	cur := make(map[series]float64, len(stats)*8)
+	for _, s := range stats {
+		if matchAny(n.Exclude, s.Name) {
 			continue
 		}
-		iface = strings.TrimSpace(iface)
-		if matchAny(n.Exclude, iface) {
-			continue
-		}
-		// 8 receive columns followed by 8 transmit columns; bytes is first in each.
-		f := strings.Fields(rest)
-		if len(f) < 16 {
-			continue
-		}
-		rx, err1 := strconv.ParseUint(f[0], 10, 64)
-		tx, err2 := strconv.ParseUint(f[8], 10, 64)
-		if err1 != nil || err2 != nil {
-			continue
-		}
-		cur["rx|"+iface] = rx
-		cur["tx|"+iface] = tx
+		l := labels("iface", s.Name)
+		cur[series{"net.rx_bytes_per_sec", l}] = float64(s.BytesRecv)
+		cur[series{"net.tx_bytes_per_sec", l}] = float64(s.BytesSent)
+		cur[series{"net.rx_packets_per_sec", l}] = float64(s.PacketsRecv)
+		cur[series{"net.tx_packets_per_sec", l}] = float64(s.PacketsSent)
+		cur[series{"net.rx_errors_per_sec", l}] = float64(s.Errin)
+		cur[series{"net.tx_errors_per_sec", l}] = float64(s.Errout)
+		cur[series{"net.rx_drops_per_sec", l}] = float64(s.Dropin)
+		cur[series{"net.tx_drops_per_sec", l}] = float64(s.Dropout)
 	}
-
-	rates := n.rate.update(now, cur)
-	out := make([]Sample, 0, len(rates))
-	for key, v := range rates {
-		dir, iface, _ := strings.Cut(key, "|")
-		out = append(out, Sample{Metric: "net." + dir + "_bytes_per_sec", Labels: "iface=" + iface, Value: v})
-	}
-	return out, nil
+	return n.counters.rates(now, cur), nil
 }

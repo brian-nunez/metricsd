@@ -26,6 +26,7 @@ Commands:
   now                Show the latest value of every metric
   list               List available metrics
   history METRIC     Show averaged history for one metric
+  info               Show the environment metricsd is measuring
   health             Check that metricsd is running
 
 Run 'metricsctl <command> -h' for command flags.
@@ -52,6 +53,8 @@ func main() {
 		err = cmdList(c, args)
 	case "history":
 		err = cmdHistory(c, args)
+	case "info":
+		err = cmdInfo(c, args)
 	case "health":
 		err = cmdHealth(c, args)
 	default:

@@ -26,13 +26,15 @@ const (
 
 type handler struct {
 	store *store.Store
+	info  wire.Info
 	log   *slog.Logger
 }
 
-func NewHandler(st *store.Store, log *slog.Logger) http.Handler {
-	h := &handler{store: st, log: log}
+func NewHandler(st *store.Store, info wire.Info, log *slog.Logger) http.Handler {
+	h := &handler{store: st, info: info, log: log}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", h.health)
+	mux.HandleFunc("GET /v1/info", h.identity)
 	mux.HandleFunc("GET /v1/metrics", h.latest)
 	mux.HandleFunc("GET /v1/metrics/{name}", h.history)
 	return mux
@@ -47,6 +49,10 @@ func (h *handler) health(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, wire.Health{Status: "ok"})
+}
+
+func (h *handler) identity(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.info)
 }
 
 func (h *handler) latest(w http.ResponseWriter, r *http.Request) {

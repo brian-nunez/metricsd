@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -147,6 +148,59 @@ func cmdHistory(c *client, args []string) error {
 		}
 	}
 	return nil
+}
+
+func cmdInfo(c *client, args []string) error {
+	fs := flag.NewFlagSet("info", flag.ExitOnError)
+	asJSON := fs.Bool("json", false, "print raw JSON")
+	if pos := parseInterleaved(fs, args); len(pos) > 0 {
+		return fmt.Errorf("info: unexpected argument %q", pos[0])
+	}
+
+	var info wire.Info
+	body, err := c.getJSON("/v1/info", nil, &info)
+	if err != nil {
+		return err
+	}
+	if *asJSON {
+		return printJSON(body)
+	}
+
+	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	row := func(k, v string) {
+		if v != "" {
+			fmt.Fprintf(tw, "%s\t%s\n", k, v)
+		}
+	}
+	row("Environment", info.Environment)
+	row("ID", info.ID)
+	row("Hostname", info.Hostname)
+	row("OS", strings.TrimSpace(info.Platform+" "+info.PlatformVersion+" ("+info.OS+"/"+info.Arch+")"))
+	row("Kernel", info.KernelVersion)
+	row("CPU", info.CPUModel)
+	row("Hypervisor", info.Hypervisor)
+	if ct := info.Container; ct != nil {
+		row("Container runtime", ct.Runtime)
+		row("Container ID", ct.ID)
+	}
+	if k := info.Kubernetes; k != nil {
+		row("Namespace", k.Namespace)
+		row("Pod", k.Pod)
+		row("Pod UID", k.PodUID)
+		row("Container", k.Container)
+		row("Node", k.Node)
+	}
+	keys := make([]string, 0, len(info.Tags))
+	for k := range info.Tags {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, k := range keys {
+		row("Tag "+k, info.Tags[k])
+	}
+	row("Agent version", info.AgentVersion)
+	row("Started", time.Unix(info.StartedAt, 0).Format(time.DateTime))
+	return tw.Flush()
 }
 
 func cmdHealth(c *client, args []string) error {

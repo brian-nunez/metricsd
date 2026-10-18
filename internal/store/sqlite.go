@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -31,7 +32,17 @@ CREATE TABLE IF NOT EXISTS points (
 	PRIMARY KEY (series_id, ts)
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS points_ts ON points (ts);
+CREATE TABLE IF NOT EXISTS export_cursors (
+	name TEXT PRIMARY KEY,
+	ts   INTEGER NOT NULL
+);
 `
+
+// Cycle is every sample recorded at one collection timestamp.
+type Cycle struct {
+	TS      int64
+	Samples []collector.Sample
+}
 
 type Point struct {
 	TS    int64
@@ -230,6 +241,55 @@ func (s *Store) History(ctx context.Context, metric string, since time.Time, ste
 		}
 		last := &out[len(out)-1]
 		last.Points = append(last.Points, p)
+	}
+	return out, rows.Err()
+}
+
+// Cursor returns the timestamp of the last cycle an exporter delivered.
+func (s *Store) Cursor(ctx context.Context, name string) (ts int64, found bool, err error) {
+	err = s.r.QueryRowContext(ctx, `SELECT ts FROM export_cursors WHERE name = ?`, name).Scan(&ts)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, false, nil
+	}
+	return ts, err == nil, err
+}
+
+func (s *Store) SetCursor(ctx context.Context, name string, ts int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, err := s.w.ExecContext(ctx, `
+		INSERT INTO export_cursors (name, ts) VALUES (?, ?)
+		ON CONFLICT (name) DO UPDATE SET ts = excluded.ts`, name, ts)
+	return err
+}
+
+// Cycles returns up to limit whole collection cycles recorded after the
+// given timestamp, oldest first.
+func (s *Store) Cycles(ctx context.Context, after int64, limit int) ([]Cycle, error) {
+	rows, err := s.r.QueryContext(ctx, `
+		SELECT p.ts, s.metric, s.labels, p.value
+		FROM points p JOIN series s ON s.id = p.series_id
+		WHERE p.ts > ?1 AND p.ts <= (
+			SELECT max(ts) FROM (SELECT DISTINCT ts FROM points WHERE ts > ?1 ORDER BY ts LIMIT ?2)
+		)
+		ORDER BY p.ts`, after, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Cycle
+	for rows.Next() {
+		var ts int64
+		var smp collector.Sample
+		if err := rows.Scan(&ts, &smp.Metric, &smp.Labels, &smp.Value); err != nil {
+			return nil, err
+		}
+		if len(out) == 0 || out[len(out)-1].TS != ts {
+			out = append(out, Cycle{TS: ts})
+		}
+		last := &out[len(out)-1]
+		last.Samples = append(last.Samples, smp)
 	}
 	return out, rows.Err()
 }
