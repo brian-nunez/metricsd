@@ -1,10 +1,15 @@
-# Only the core health signals: CPU, memory, load, and disk space.
+# Only the core health signals: CPU, memory, load, disk space, and uptime.
 
 [collectors]
-cpu    = true
-mem    = true
-load   = true
-disk   = true
-diskio = false
-net    = false
-temp   = false
+cpu      = true
+mem      = true
+load     = true
+disk     = true
+system   = true
+diskio   = false
+net      = false
+netstat  = false
+pressure = false
+temp     = false
+fan      = false
+battery  = false

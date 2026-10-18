@@ -50,8 +50,10 @@ command -v metricsctl || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashr
 ## Verify the install
 
 ```bash
+metricsd -version                    # prints the build version
 systemctl --user status metricsd     # should be "active (running)"
 metricsctl health                    # prints "ok"
+metricsctl info                      # environment detected (physical, vm, ...) and its ID
 metricsctl now                       # wait one interval (5s) for CPU and rate metrics
 ```
 
@@ -81,6 +83,29 @@ make install BINDIR="$(go env GOPATH)/bin"
 
 Or create the unit by hand: copy `deploy/metricsd.service` to `~/.config/systemd/user/`, replace `@BINDIR@` with the binary's directory, and run `systemctl --user daemon-reload`.
 
+## Docker image
+
+To measure a container, metricsd runs inside it (see [containers.md](containers.md)). Build the image from the repository:
+
+```bash
+docker build -t metricsd .      # or: podman build -t metricsd .
+```
+
+| Property | Value |
+| -------- | ----- |
+| Base | `scratch`: only the two static binaries, CA certificates for OTLP over HTTPS, and a world-writable `/tmp` |
+| Size | about 38 MB |
+| Binaries | `/usr/local/bin/metricsd`, `/usr/local/bin/metricsctl` |
+| Entrypoint | `metricsd` |
+
+Copy the binaries into your application image:
+
+```dockerfile
+COPY --from=metricsd:latest /usr/local/bin/ /usr/local/bin/
+```
+
+Then start `metricsd` alongside your application; [containers.md](containers.md#adding-metricsd-to-an-image) shows entrypoints for that.
+
 ## Run without systemd
 
 `metricsd` runs fine in the foreground, which is useful for testing:
@@ -98,8 +123,8 @@ Stop it with `Ctrl+C` (SIGINT) or SIGTERM; it shuts down cleanly. Logs go to std
 | What     | Path                                         | Notes |
 | -------- | -------------------------------------------- | ----- |
 | Config   | `~/.config/metricsd/config.toml`             | Optional; defaults apply when missing |
-| Database | `~/.local/state/metricsd/metrics.db`         | Plus `-wal` and `-shm` files |
-| Socket   | `$XDG_RUNTIME_DIR/metricsd/metricsd.sock`    | Usually `/run/user/1000/...`; removed on stop |
+| Database | `~/.local/state/metricsd/metrics.db`         | Plus `-wal` and `-shm` files. In containers: `/var/lib/metricsd` as root, `/tmp/metricsd` otherwise |
+| Socket   | `$XDG_RUNTIME_DIR/metricsd/metricsd.sock`    | Usually `/run/user/1000/...`; removed on stop. Falls back to `/tmp/metricsd/metricsd.sock` when there is no runtime directory (containers) |
 | Unit     | `~/.config/systemd/user/metricsd.service`    | |
 | Binaries | `~/.local/bin/metricsd`, `~/.local/bin/metricsctl` | |
 
@@ -108,6 +133,8 @@ XDG environment variables (`XDG_CONFIG_HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR
 ## Next steps
 
 - [Configure it](configuration.md) or start from an [example](../examples/README.md)
+- [Send metrics to a central server](export.md)
+- [Run it in containers](containers.md)
 - [Learn metricsctl](usage.md)
 - [Upgrade](#upgrading)
 

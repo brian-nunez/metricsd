@@ -1,0 +1,10 @@
+# metricsd inside a rootless Podman (or rootless Docker) container.
+# Detection and paths are automatic; collectors whose cgroup controllers
+# aren't delegated to your user are skipped and logged at startup.
+
+interval  = "10s"
+retention = "1d"
+
+[tags]
+service = "my-app"
+runtime_mode = "rootless"

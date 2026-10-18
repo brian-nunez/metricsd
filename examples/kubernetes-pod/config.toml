@@ -1,0 +1,15 @@
+# metricsd inside a container of a Kubernetes pod, measuring that container
+# and exporting to an OpenTelemetry Collector in the cluster.
+
+interval  = "15s"
+retention = "1d"
+
+[tags]
+cluster = "prod-us-east"
+
+[export.otlp]
+enabled  = true
+protocol = "grpc"
+# Plaintext inside the cluster network; use https:// and ca_file for TLS.
+endpoint = "http://otel-collector.observability.svc.cluster.local:4317"
+interval = "30s"

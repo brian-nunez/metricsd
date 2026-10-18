@@ -38,7 +38,7 @@ With lingering, your user manager starts at boot and metricsd runs whether or no
 
 ## Sandboxing
 
-The unit locks the daemon down to what it needs: reading `/proc` and `/sys`, writing its database, and serving one Unix socket.
+The unit locks the daemon down to what it needs: reading `/proc` and `/sys`, writing its database, serving one Unix socket, and opening outbound connections for [OTLP export](export.md).
 
 | Setting | Effect |
 | ------- | ------ |
@@ -50,7 +50,7 @@ The unit locks the daemon down to what it needs: reading `/proc` and `/sys`, wri
 | `ProtectKernelTunables=yes` | `/proc/sys` and `/sys` tunables read-only |
 | `ProtectKernelModules=yes` | Can't load kernel modules |
 | `ProtectControlGroups=yes` | cgroup filesystem read-only |
-| `RestrictAddressFamilies=AF_UNIX` | Only Unix sockets: no TCP/UDP, no outbound network |
+| `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6` | Unix sockets for the local API; IPv4/IPv6 only so OTLP export can reach its server. No raw, netlink, or packet sockets. |
 | `RestrictNamespaces=yes` | Can't create namespaces |
 | `RestrictRealtime=yes` | No realtime scheduling |
 | `LockPersonality=yes` | Can't change execution domain |
@@ -103,7 +103,7 @@ The empty `ExecStart=` clears the original before setting the new one. `%h` is y
 
 ### Limit resources
 
-metricsd typically uses 15–25 MB RSS and a fraction of a percent of CPU. To enforce a ceiling:
+metricsd typically uses 20–30 MB RSS (measured 29 MB with OTLP export enabled) and a fraction of a percent of CPU. To enforce a ceiling:
 
 ```ini
 [Service]
@@ -122,15 +122,25 @@ sed "s|@BINDIR@|$PWD/bin|" deploy/metricsd.service > /tmp/metricsd.service
 systemd-analyze --user verify /tmp/metricsd.service
 ```
 
-Run the binary under the same sandbox as a throwaway transient unit:
+Run the binary under the same sandbox as a throwaway transient unit. Properties go in a bash array because some values contain spaces (`RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`). The unit's own `StateDirectory`/`RuntimeDirectory` are replaced with test ones, so the test never touches an installed instance's database or socket:
 
 ```bash
 make build
-PROPS=$(sed -n '/^\[Service\]/,/^\[/{/^[A-Z][A-Za-z]*=/p}' deploy/metricsd.service \
-  | grep -vE '^(ExecStart|Type|Restart|RestartSec)=' | sed 's/^/-p /' | tr '\n' ' ')
-systemd-run --user --unit=metricsd-test -p Type=exec $PROPS "$PWD/bin/metricsd"
-metricsctl now
+mapfile -t LINES < <(sed -n '/^\[Service\]/,/^\[/{/^[A-Z][A-Za-z]*=/p}' deploy/metricsd.service \
+  | grep -vE '^(ExecStart|Type|Restart|RestartSec|StateDirectory|RuntimeDirectory)=')
+ARGS=(); for l in "${LINES[@]}"; do ARGS+=(-p "$l"); done
+
+systemd-run --user --unit=metricsd-test -p Type=exec "${ARGS[@]}" \
+  -p StateDirectory=metricsd-test -p RuntimeDirectory=metricsd-test \
+  -p Environment=XDG_RUNTIME_DIR=/run/user/$(id -u)/metricsd-test \
+  "$PWD/bin/metricsd"
+
+metricsctl -socket /run/user/$(id -u)/metricsd-test/metricsd/metricsd.sock now
+journalctl --user -u metricsd-test -n 20 --no-pager
+
 systemctl --user stop metricsd-test
+systemctl --user reset-failed metricsd-test 2>/dev/null   # clears a failed run so the name can be reused
+rm -rf ~/.local/state/metricsd-test
 ```
 
-Stop any installed `metricsd` first, since only one instance can own the socket.
+Pass `-config /path/to/file` after the binary to test export or other settings. Put that file outside `/tmp`, since `PrivateTmp=yes` hides the host's `/tmp` from the unit.

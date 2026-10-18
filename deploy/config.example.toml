@@ -1,25 +1,50 @@
 # metricsd configuration. Copy to ~/.config/metricsd/config.toml.
 # Every key is optional; the values below are the defaults.
+# Reference: docs/configuration.md
+
+# What metricsd measures: "auto" (detect), "physical", "vm", "docker",
+# "podman", "kubernetes", or "container". Each environment reports only
+# itself: a container reports its own limits, not the host's.
+environment = "auto"
 
 # How often to sample. Minimum 1s.
 interval = "5s"
 
-# How long to keep samples. Accepts Go durations ("36h") or whole days ("7d").
+# How long to keep samples. Accepts Go durations ("36h") or days ("7d").
+# Also limits how far back export can catch up after an outage.
 retention = "7d"
 
-# Defaults follow XDG: $XDG_STATE_HOME/metricsd/metrics.db and
-# $XDG_RUNTIME_DIR/metricsd/metricsd.sock. "~/" is expanded.
+# Defaults depend on the environment (docs/configuration.md#default-paths):
+#   machines:            ~/.local/state/metricsd/metrics.db
+#   containers, root:    /var/lib/metricsd/metrics.db
+#   containers, non-root /tmp/metricsd/metrics.db
+# Socket: $XDG_RUNTIME_DIR/metricsd/metricsd.sock, else
+# /run/user/<uid>/metricsd/metricsd.sock, else /tmp/metricsd/metricsd.sock.
+# "~/" is expanded. The socket path may be at most 107 bytes.
 # db_path = "~/.local/state/metricsd/metrics.db"
 # socket_path = "/run/user/1000/metricsd/metricsd.sock"
 
+# Describe this source. Shown by `metricsctl info` and sent with every OTLP
+# export as resource attributes.
+[tags]
+# env  = "production"
+# team = "platform"
+
+# Collectors that don't apply to the environment (load and hardware sensors
+# inside containers) are skipped automatically.
 [collectors]
-cpu = true
-mem = true
-load = true
-disk = true
-diskio = true
-net = true
-temp = true
+cpu      = true
+mem      = true
+load     = true
+disk     = true
+diskio   = true
+net      = true
+netstat  = true
+system   = true
+pressure = true
+temp     = true
+fan      = true
+battery  = true
 
 # Glob patterns. Setting a list replaces the defaults entirely.
 [net]
@@ -27,3 +52,33 @@ exclude_interfaces = ["lo", "veth*", "br-*", "docker*"]
 
 [diskio]
 exclude_devices = ["loop*", "ram*", "dm-*"]
+
+# Send metrics to an OpenTelemetry endpoint (docs/export.md).
+[export.otlp]
+enabled = false
+
+# "http" (OTLP/HTTP, port 4318) or "grpc" (port 4317).
+protocol = "http"
+
+# https:// enables TLS, http:// is plaintext. For HTTP, /v1/metrics is
+# appended when the URL has no path. Empty uses OTEL_EXPORTER_OTLP_ENDPOINT,
+# then localhost.
+endpoint = ""
+
+# "gzip" or "none".
+compression = "gzip"
+
+# Per-request timeout, and how often buffered cycles are sent.
+timeout  = "10s"
+interval = "30s"
+
+# Private CA to trust (in addition to system roots) and an optional client
+# certificate for mutual TLS. Files must exist when export is enabled.
+# ca_file   = "/etc/metricsd/ca.pem"
+# cert_file = "/etc/metricsd/client.pem"
+# key_file  = "/etc/metricsd/client-key.pem"
+
+# Request headers (HTTP) or metadata (gRPC), usually authentication.
+# Keep this file private (chmod 600) when it holds credentials.
+[export.otlp.headers]
+# authorization = "Bearer REPLACE_ME"

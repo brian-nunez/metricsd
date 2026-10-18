@@ -25,7 +25,7 @@ The list covers all of them, so it works whichever CNI the cluster uses. Pattern
 
 ## Footprint
 
-About 50 series → **~10 MiB/day, ~140 MiB at full retention**.
+About 165 series → **~32 MiB/day, ~445 MiB at full retention**.
 
 ## Running on a node
 
@@ -45,4 +45,4 @@ metricsctl now | grep '^net\.'
 
 ## Scope
 
-metricsd measures the **node**. For per-pod and per-container metrics, use the kubelet's cAdvisor endpoint or metrics-server. metricsd's value on a node is a dependency-free view that keeps working when the cluster's own monitoring is down.
+This config measures the **node**. To measure a container against its own limits, run metricsd inside that container; see [kubernetes-pod](../kubernetes-pod/). Node and containers then report as separate sources, and the central server links them through `k8s.node.name`. On a node, metricsd is a dependency-free view that keeps working when the cluster's own monitoring is down.

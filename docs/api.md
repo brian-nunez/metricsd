@@ -74,6 +74,74 @@ curl -s --unix-socket "$SOCK" http://x/v1/health
 | 200    | Healthy |
 | 503    | Database unavailable |
 
+### GET /v1/info
+
+The identity of the environment this metricsd measures. It is gathered once at startup. The same fields become the resource attributes on [OTLP exports](export.md), which is how a central server tells sources apart.
+
+```bash
+curl -s --unix-socket "$SOCK" http://x/v1/info
+```
+
+Physical machine:
+
+```json
+{
+  "environment": "physical",
+  "id": "b12f97a4-fe8a-4a2f-bacc-556caf2300a8",
+  "hostname": "bdesktop",
+  "os": "linux",
+  "arch": "amd64",
+  "platform": "omarchy",
+  "platform_version": "4.0.1",
+  "kernel_version": "7.1.9-arch1-2",
+  "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+  "agent_version": "v0.1.0",
+  "started_at": 1792299543
+}
+```
+
+Docker container:
+
+```json
+{
+  "environment": "docker",
+  "id": "b222ab9813a46ecdd4dbfbfa62d4e217a35058a277ef963b671e1431ca76b9f6",
+  "hostname": "b222ab9813a4",
+  "os": "linux",
+  "arch": "amd64",
+  "platform": "alpine",
+  "platform_version": "3.24.2",
+  "kernel_version": "7.1.9-arch1-2",
+  "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+  "container": {
+    "runtime": "docker",
+    "id": "b222ab9813a46ecdd4dbfbfa62d4e217a35058a277ef963b671e1431ca76b9f6"
+  },
+  "tags": {"service_group": "api"},
+  "agent_version": "v0.1.0",
+  "started_at": 1792299580
+}
+```
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `environment` | string | `physical`, `vm`, `docker`, `podman`, `kubernetes`, or `container` |
+| `id` | string | Stable unique ID: `/etc/machine-id` on machines, the container ID in containers, `<pod-uid>/<container>` in Kubernetes. Falls back to the hostname. |
+| `hostname` | string | Hostname (the short container ID in Docker by default, the pod name in Kubernetes) |
+| `os`, `arch` | string | Go platform, e.g. `linux`, `amd64` |
+| `platform`, `platform_version` | string | Distribution from `/etc/os-release`; inside a container, the container image's OS |
+| `kernel_version` | string | Running kernel (a container shares its host's kernel) |
+| `cpu_model` | string | CPU model name |
+| `hypervisor` | string | VMs only: `kvm`, `vmware`, `hyperv`, `xen`, `aws`, `gce`, ... or `unknown` |
+| `container.runtime` | string | `docker`, `podman`, or `container`; empty in Kubernetes |
+| `container.id` | string | 64-character container ID when discoverable |
+| `kubernetes.namespace`, `.pod`, `.pod_uid`, `.container`, `.node` | string | Kubernetes only; `.node` needs `NODE_NAME` from the downward API |
+| `tags` | object | `[tags]` from the config |
+| `agent_version` | string | metricsd version |
+| `started_at` | int | Unix time the daemon started |
+
+Empty fields are omitted.
+
 ### GET /v1/metrics
 
 Every sample from the most recent collection cycle.

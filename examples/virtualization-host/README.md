@@ -28,7 +28,7 @@ Excluding these means disk IO reflects the physical drives (`sda`, `nvme0n1`), w
 
 ## Footprint
 
-Host interfaces and disks only → about the default **~32 MiB/day, ~220 MiB at full retention**, no matter how many VMs run.
+Host interfaces and disks only → about the default **~98 MiB/day, ~690 MiB at full retention**, no matter how many VMs run.
 
 ## Useful queries
 

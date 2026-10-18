@@ -17,7 +17,7 @@ A starting point that spells out the three settings people most often change. Th
 
 ## Footprint
 
-About 55 series on a typical desktop → **~32 MiB/day, ~220 MiB at full retention**.
+About 169 series on a typical desktop → **~98 MiB/day, ~690 MiB at full retention**. A container reports about 73 series (~42 MiB/day).
 
 ## Next steps
 

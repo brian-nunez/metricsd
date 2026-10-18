@@ -1,0 +1,18 @@
+# Export to a self-hosted OpenTelemetry Collector over OTLP/gRPC with TLS.
+
+[tags]
+env = "production"
+
+[export.otlp]
+enabled  = true
+protocol = "grpc"
+endpoint = "https://otel-collector.internal.example.com:4317"
+interval = "30s"
+
+# Trust a private CA (in addition to the system roots). Uncomment once the
+# file exists; metricsd refuses to start if a configured file is missing.
+# ca_file = "/etc/metricsd/ca.pem"
+
+# Mutual TLS: present a client certificate. Both lines or neither.
+# cert_file = "/etc/metricsd/client.pem"
+# key_file  = "/etc/metricsd/client-key.pem"

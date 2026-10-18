@@ -1,0 +1,10 @@
+# metricsd inside an application container, measuring that container.
+# Environment, database, and socket are detected automatically.
+
+# Container filesystems are usually ephemeral, so keep local history short;
+# a central server (see [export.otlp]) holds the long-term data.
+interval  = "10s"
+retention = "1d"
+
+[tags]
+service = "my-app"

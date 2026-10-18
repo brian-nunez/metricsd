@@ -11,7 +11,7 @@ Samples every second — the fastest metricsd allows — to catch short CPU, IO,
 
 ## Footprint
 
-About 55 series → **~160 MiB/day**, which is also the steady-state size with 1-day retention.
+About 169 series on a typical desktop → **~490 MiB/day**, which is also the steady-state size with 1-day retention. A container (about 73 series) needs ~210 MiB/day.
 
 CPU cost stays small (a few file reads and one SQLite transaction per second), but this is the setting to avoid on battery.
 
@@ -38,5 +38,5 @@ metricsctl history diskio.write_bytes_per_sec -since 10m -step 1s -labels device
 
 ## Variations
 
-- **Longer investigation:** `retention = "3d"` (~480 MiB).
+- **Longer investigation:** `retention = "3d"` (~1.4 GiB).
 - **Focus on one subsystem:** turn off unrelated collectors under `[collectors]` to shrink storage proportionally.

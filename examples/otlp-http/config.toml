@@ -1,0 +1,17 @@
+# Export to a hosted OTLP/HTTP endpoint with a bearer token.
+# Keep this file private (chmod 600): it holds a credential.
+
+[tags]
+env = "production"
+
+[export.otlp]
+enabled     = true
+protocol    = "http"
+# No path given, so metrics are posted to https://otlp.example.com/v1/metrics.
+endpoint    = "https://otlp.example.com"
+compression = "gzip"
+timeout     = "10s"
+interval    = "30s"
+
+[export.otlp.headers]
+authorization = "Bearer REPLACE_ME"

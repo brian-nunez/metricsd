@@ -97,6 +97,72 @@ Container networking creates one interface per container. Exclude them with `[ne
 
 It shouldn't — both use `used / (used + available)`. If it differs, check you're comparing the same mount (`df /path`) and the same moment.
 
+## Containers
+
+See [containers.md](containers.md) for how container measurement works.
+
+### A container reports the host's RAM and CPU count
+
+- Check `metricsctl info`. `Environment` must be `docker`, `podman`, `kubernetes`, or `container`. If it says `physical` or `vm`, the runtime left no marker; set `environment = "docker"` (or the right runtime) in the config.
+- The host runs cgroup v1. Container metrics need cgroup v2; the startup log says `cgroup v2 is not mounted`.
+- The container has no limit. Without `--memory`/`--cpus`, the host's capacity is the real ceiling and is reported as such.
+
+### `collector skipped` at startup
+
+These are informational. Each line names the collector and the reason:
+
+| Reason | Meaning |
+| ------ | ------- |
+| `machine-wide only; not measured inside containers` | load, temp, fan, battery are host figures. Run metricsd on the host for them. |
+| `io controller not delegated to ...` | Rootless runtime without `io` delegation: no `diskio.*`. See [delegation](containers.md#controller-delegation). |
+| `memory controller not delegated to ...` | No `mem.*` from the cgroup. |
+| `no readable pressure files in ...` | The cgroup exposes no PSI files. |
+| `pressure stall information unavailable ...` | The host kernel has PSI disabled (`psi=0`). |
+
+### `create data dir: mkdir /var/lib/metricsd: permission denied`
+
+Something set `db_path` to `/var/lib/...` while the container runs as a non-root user. Remove the setting (non-root users default to `/tmp/metricsd`) or mount a writable volume there.
+
+### `read-only file system` in a container
+
+The container runs with a read-only root filesystem. Add `--tmpfs /tmp` (Kubernetes: an `emptyDir` at `/tmp`) or point `db_path` and `socket_path` at a writable volume.
+
+### `metricsctl` can't reach metricsd in a container
+
+Run it inside the same container (`docker exec <name> metricsctl now`). The socket is inside the container's filesystem.
+
+## Export
+
+See [export.md](export.md).
+
+### `export failed; data is buffered locally`
+
+The server was unreachable or rejected the request; the `err` field says which. Data stays in the local database and is sent when delivery recovers. Only the first failure and every 10th are logged; `export recovered` marks the end.
+
+### HTTP 404 from an OTLP/HTTP endpoint
+
+The path is wrong. With an empty path metricsd posts to `/v1/metrics`; if your server expects another path, include it in `endpoint`. Also check that `protocol = "http"` is pointed at the HTTP port (usually 4318), not the gRPC port (4317).
+
+### `Unavailable` / `connection refused` with gRPC
+
+Check the port (4317) and the scheme: `http://` is plaintext, `https://` is TLS. A plaintext client against a TLS server, or the reverse, fails at connection time.
+
+### `x509: certificate signed by unknown authority`
+
+The server uses a private CA. Set `ca_file` to its PEM bundle.
+
+### HTTP 401 / gRPC `Unauthenticated`
+
+Missing or wrong credentials. Set `[export.otlp.headers]` (for example `authorization = "Bearer ..."`) or `OTEL_EXPORTER_OTLP_HEADERS`.
+
+### Metrics arrive with old timestamps after an outage
+
+Expected: that's the buffered backlog, sent with each sample's collection time.
+
+### Ports 4317/4318 already in use when testing a local collector
+
+Another collector (for example `grafana/otel-lgtm`) already owns them. Map the test collector to spare host ports (`-p 127.0.0.1:14317:4317`) and point `endpoint` there.
+
 ## Data and storage
 
 ### The database keeps growing

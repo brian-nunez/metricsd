@@ -19,7 +19,7 @@ Each container restart produces a new `veth` name, and therefore a new series th
 
 ## Footprint
 
-Default settings plus two `docker0` series → **~33 MiB/day, ~230 MiB at full retention**.
+Default settings plus eight `docker0` series → **~103 MiB/day, ~720 MiB at full retention** for a typical desktop.
 
 ## Useful queries
 
@@ -37,4 +37,4 @@ metricsctl history net.tx_bytes_per_sec -since 6h -labels iface=enp3s0
 - **Podman:** add `podman*` and `cni-podman*` to the list.
 - **Overlay/Swarm:** add `docker_gwbridge` and `vx-*`.
 
-Per-container CPU and memory are outside metricsd's scope; use `docker stats` or cAdvisor for those.
+This config measures the **host**. To measure a container's own CPU, memory, and IO against its limits, run metricsd inside that container as well; see [docker-container](../docker-container/). Each one reports as a separate source.

@@ -11,7 +11,7 @@ Keeps three months of history at one-minute resolution: enough to see trends, co
 
 ## Footprint
 
-About 55 series → **~2.6 MiB/day, ~240 MiB at full retention**. That's roughly the same size as the default 5s × 7d config, but covering 13× the time.
+About 169 series → **~8 MiB/day, ~730 MiB at full retention**. That's roughly the same size as the default 5s × 7d config, but covering 13× the time.
 
 ## Pair with lingering
 
@@ -40,5 +40,5 @@ Daily and weekly steps are averages, which smooth out peaks. Use SQL with `max()
 
 ## Variations
 
-- **A full year:** `retention = "365d"` (~960 MiB). Consider `interval = "5m"` (~190 MiB) instead.
+- **A full year:** `retention = "365d"` (~2.9 GiB). Consider `interval = "5m"` (~590 MiB) instead.
 - **Fine detail for recent data:** metricsd stores one resolution. To keep both, run this config for history and query recent spikes from a separate high-resolution instance with its own `db_path` and `socket_path`.

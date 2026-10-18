@@ -9,7 +9,7 @@ Because the systemd unit sandboxes the daemon, a custom path also needs a one-ti
 | Key | Value | Why |
 | --- | ----- | --- |
 | `db_path` | `/mnt/data/metricsd/metrics.db` | Database on the data disk. The `-wal` and `-shm` files go beside it. |
-| `retention` | `30d` | A month of history: ~950 MiB at the default interval. |
+| `retention` | `30d` | A month of history: ~2.9 GiB at the default interval for a typical desktop (169 series). |
 
 ## Setup
 
