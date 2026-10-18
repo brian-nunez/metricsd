@@ -110,6 +110,7 @@ Full reference: [docs/metrics.md](docs/metrics.md).
 
 | Doc | Covers |
 | --- | ------ |
+| [Onboarding](docs/onboarding.md) | **Start here**: production config, install and manage on VMs, Docker, Podman, Kubernetes |
 | [Installation](docs/installation.md) | Requirements, `make install`, Docker image, manual install |
 | [Containers](docs/containers.md) | Docker, Podman, Kubernetes, rootless, adding to images |
 | [Export](docs/export.md) | OTLP HTTP/gRPC, TLS, auth, resource attributes, buffering |

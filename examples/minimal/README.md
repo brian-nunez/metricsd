@@ -7,7 +7,7 @@ A starting point that spells out the three settings people most often change. Th
 | Key | Value | Meaning |
 | --- | ----- | ------- |
 | `interval` | `5s` | Sample every 5 seconds |
-| `retention` | `7d` | Keep one week of history |
+| `retention` | `1d` | Keep one day of history |
 | `[net] exclude_interfaces` | `lo`, `veth*`, `br-*`, `docker*` | Skip loopback and Docker's virtual interfaces |
 
 ## When to use it
@@ -17,7 +17,7 @@ A starting point that spells out the three settings people most often change. Th
 
 ## Footprint
 
-About 169 series on a typical desktop → **~98 MiB/day, ~690 MiB at full retention**. A container reports about 73 series (~42 MiB/day).
+About 169 series on a typical desktop → **~98 MiB at full retention** (1 day). A container reports about 73 series (~42 MiB).
 
 ## Next steps
 

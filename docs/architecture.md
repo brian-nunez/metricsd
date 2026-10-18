@@ -203,7 +203,7 @@ MiB per day ≈ series × (86400 / interval_seconds) × 35 / 1048576
 | Interval | Per day  | 1 day    | 7 days    | 30 days  | 90 days  |
 | -------- | -------- | -------- | --------- | -------- | -------- |
 | 1s       | 487 MiB  | 487 MiB  | 3.3 GiB   | 14.3 GiB | 42.8 GiB |
-| 5s       | 97 MiB   | 97 MiB   | **682 MiB** (default) | 2.9 GiB | 8.6 GiB |
+| 5s       | 97 MiB   | **97 MiB** (default) | 682 MiB | 2.9 GiB | 8.6 GiB |
 | 15s      | 32 MiB   | 32 MiB   | 227 MiB   | 975 MiB  | 2.9 GiB  |
 | 30s      | 16 MiB   | 16 MiB   | 114 MiB   | 487 MiB  | 1.4 GiB  |
 | 60s      | 8.1 MiB  | 8.1 MiB  | 57 MiB    | 244 MiB  | 731 MiB  |
@@ -213,12 +213,12 @@ MiB per day ≈ series × (86400 / interval_seconds) × 35 / 1048576
 | Interval | Per day  | 1 day    | 7 days    | 30 days  | 90 days  |
 | -------- | -------- | -------- | --------- | -------- | -------- |
 | 1s       | 211 MiB  | 211 MiB  | 1.4 GiB   | 6.2 GiB  | 18.5 GiB |
-| 5s       | 42 MiB   | 42 MiB   | **295 MiB** (default) | 1.2 GiB | 3.7 GiB |
+| 5s       | 42 MiB   | **42 MiB** (default) | 295 MiB | 1.2 GiB | 3.7 GiB |
 | 15s      | 14 MiB   | 14 MiB   | 98 MiB    | 421 MiB  | 1.2 GiB  |
 | 30s      | 7.0 MiB  | 7.0 MiB  | 49 MiB    | 210 MiB  | 632 MiB  |
 | 60s      | 3.5 MiB  | 3.5 MiB  | 25 MiB    | 105 MiB  | 316 MiB  |
 
-When metricsd mainly feeds a central server over OTLP, the local database only has to cover outages: a short `retention` (for example `1d`) keeps it small.
+When metricsd mainly exports over OTLP, the local database only has to cover outages, and the default `retention` of `1d` keeps it small. Raise it when you want more local history or a longer outage buffer.
 
 Pruning frees pages inside the file for reuse; the file itself doesn't shrink. After lowering retention, reclaim space once with:
 

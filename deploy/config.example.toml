@@ -12,7 +12,7 @@ interval = "5s"
 
 # How long to keep samples. Accepts Go durations ("36h") or days ("7d").
 # Also limits how far back export can catch up after an outage.
-retention = "7d"
+retention = "1d"
 
 # Defaults depend on the environment (docs/configuration.md#default-paths):
 #   machines:            ~/.local/state/metricsd/metrics.db

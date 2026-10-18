@@ -2,6 +2,8 @@
 
 ## Getting started
 
+**New here? Start with [Onboarding](onboarding.md)**: a production config plus install and management steps for VMs, Docker, Podman, and Kubernetes.
+
 1. [Installation](installation.md) – build, install, and start the service (or build the Docker image)
 2. [Usage](usage.md) – read metrics with `metricsctl`
 3. [Configuration](configuration.md) – tune interval, retention, filters, and tags

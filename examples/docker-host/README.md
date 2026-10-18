@@ -19,7 +19,7 @@ Each container restart produces a new `veth` name, and therefore a new series th
 
 ## Footprint
 
-Default settings plus eight `docker0` series → **~103 MiB/day, ~720 MiB at full retention** for a typical desktop.
+Default settings plus eight `docker0` series → **~103 MiB at full retention** (1 day) for a typical desktop.
 
 ## Useful queries
 

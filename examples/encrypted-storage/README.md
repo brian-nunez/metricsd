@@ -37,7 +37,7 @@ Kernel names follow creation order at boot, so they're stable as long as your vo
 
 ## Footprint
 
-Same as the default (one or a few devices either way): **~98 MiB/day, ~690 MiB at full retention** for a typical desktop.
+Same as the default (one or a few devices either way): **~98 MiB at full retention** (1 day) for a typical desktop.
 
 ## Useful queries
 
